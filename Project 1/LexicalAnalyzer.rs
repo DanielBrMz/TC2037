@@ -159,9 +159,11 @@ fn lexer(filepath: &str) {
             loop {
                 match analyzer.get_next_token() {
                     Ok(token) => {
-                        match token {
+                        match &token {
                             Token::EOF => break,
-                            _ => println!("Token: {:?} Type: {}", token, token_type(&token)),
+                            Token::Variable(var) => println!("Token: {} Type: {}", var, token_type(&token)),
+                            Token::Integer(int) => println!("Token: {} Type: {}", int, token_type(&token)),
+                            _ => println!("Type: {} Token: {:?}", token_type(&token), token),
                         }
                     },
                     Err(e) => {
@@ -174,6 +176,7 @@ fn lexer(filepath: &str) {
         Err(e) => println!("Failed to read file: {}", e),
     }
 }
+
 fn token_type(token: &Token) -> &str {
     match token {
         Token::Integer(_) => "integer",
