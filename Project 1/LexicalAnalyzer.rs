@@ -1,31 +1,46 @@
+use std::fs;
+use std::io::{self, Read};
+
+#[derive(Debug)]
+enum Token {
+    Integer(i64),
+    Float(f64),
+    Assignment,
+    Sum,
+    Subtract,
+    Product,
+    Division,
+    Variable(String),
+    LeftParenthesis,
+    RightParenthesis,
+    EOF,
+}
+
+struct LexicalAnalyzer {
+    input: String,
+    position: usize,
+    current_char: Option<char>,
+}
+
 impl LexicalAnalyzer {
-    pub fn new() -> LexicalAnalyzer {
-        LexicalAnalyzer {
-            input: String::new(),
+    pub fn new(input: String) -> LexicalAnalyzer {
+        let mut analyzer = LexicalAnalyzer {
+            input,
             position: 0,
             current_char: None,
-        }
-    }
-
-    pub fn from_string(input: String) -> LexicalAnalyzer {
-        let mut analyzer = LexicalAnalyzer::new();
-        analyzer.input = input;
-        analyzer.current_char = Some(analyzer.input.chars().nth(0).unwrap());
+        };
+        analyzer.current_char = analyzer.input.chars().next();
         analyzer
     }
 
-    pub fn from_file(file_path: &str) -> Result<LexicalAnalyzer, std::io::Error> {
+    pub fn from_file(file_path: &str) -> Result<LexicalAnalyzer, io::Error> {
         let input = fs::read_to_string(file_path)?;
-        Ok(LexicalAnalyzer::from_string(input))
+        Ok(LexicalAnalyzer::new(input))
     }
 
     pub fn advance(&mut self) {
         self.position += 1;
-        if self.position < self.input.len() {
-            self.current_char = Some(self.input.chars().nth(self.position).unwrap());
-        } else {
-            self.current_char = None;
-        }
+        self.current_char = self.input.chars().nth(self.position);
     }
 
     pub fn skip_whitespace(&mut self) {
@@ -38,38 +53,126 @@ impl LexicalAnalyzer {
         }
     }
 
-    pub fn integer(&mut self) -> Result<Token, String> {
-        let mut result = String::new();
+    pub fn number(&mut self) -> Token {
+        let mut number_string = String::new();
+        let mut is_float = false;
+
         while let Some(c) = self.current_char {
-            if c.is_numeric() {
-                result.push(c);
+            if c.is_numeric() || c == '.' {
+                if c == '.' {
+                    if is_float {
+                        break; // Second dot in a number, break to avoid parsing error
+                    }
+                    is_float = true;
+                }
+                number_string.push(c);
                 self.advance();
             } else {
                 break;
             }
         }
-        Ok(Token::INTEGER(result.parse().unwrap()))
+
+        if is_float {
+            Token::Float(number_string.parse().unwrap())
+        } else {
+            Token::Integer(number_string.parse().unwrap())
+        }
+    }
+
+    pub fn identifier(&mut self) -> Token {
+        let mut id = String::new();
+        while let Some(c) = self.current_char {
+            if c.is_alphabetic() && c.is_lowercase() {
+                id.push(c);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        Token::Variable(id)
     }
 
     pub fn get_next_token(&mut self) -> Result<Token, String> {
         while let Some(c) = self.current_char {
-            if c.is_whitespace() {
-                self.skip_whitespace();
-                continue;
+            match c {
+                _ if c.is_whitespace() => {
+                    self.skip_whitespace();
+                    continue;
+                }
+                _ if c.is_alphabetic() => return Ok(self.identifier()),
+                _ if c.is_numeric() || c == '.' => return Ok(self.number()),
+                '=' => {
+                    self.advance();
+                    return Ok(Token::Assignment);
+                }
+                '+' => {
+                    self.advance();
+                    return Ok(Token::Sum);
+                }
+                '-' => {
+                    self.advance();
+                    return Ok(Token::Subtract);
+                }
+                '*' => {
+                    self.advance();
+                    return Ok(Token::Product);
+                }
+                '/' => {
+                    self.advance();
+                    return Ok(Token::Division);
+                }
+                '(' => {
+                    self.advance();
+                    return Ok(Token::LeftParenthesis);
+                }
+                ')' => {
+                    self.advance();
+                    return Ok(Token::RightParenthesis);
+                }
+                _ => return Err(format!("Invalid character: {}", c)),
             }
-            if c.is_numeric() {
-                return self.integer();
-            }
-            if c == '+' {
-                self.advance();
-                return Ok(Token::PLUS);
-            }
-            if c == '-' {
-                self.advance();
-                return Ok(Token::MINUS);
-            }
-            return Err(format!("Invalid character: {}", c));
         }
         Ok(Token::EOF)
     }
+}
+
+fn lexer(filepath: &str) {
+    match LexicalAnalyzer::from_file(filepath) {
+        Ok(mut analyzer) => {
+            loop {
+                match analyzer.get_next_token() {
+                    Ok(token) => match token {
+                        Token::EOF => break,
+                        _ => println!("{:?}\n{:?}", token, token_type(&token)),
+                    },
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        break;
+                    }
+                }
+            }
+        }
+        Err(e) => println!("Failed to read file: {}", e),
+    }
+}
+
+fn token_type(token: &Token) -> &str {
+    match token {
+        Token::Integer(_) => "integer",
+        Token::Float(_) => "float",
+        Token::Assignment => "assignment",
+        Token::Sum => "sum",
+        Token::Subtract => "subtract",
+        Token::Product => "product",
+        Token::Division => "division",
+        Token::Variable(_) => "variable",
+        Token::LeftParenthesis => "left parenthesis",
+        Token::RightParenthesis => "right parenthesis",
+        Token::EOF => "end of file",
+    }
+}
+
+fn main() {
+    let filepath = "expressions.txt";
+    lexer(filepath);
 }
