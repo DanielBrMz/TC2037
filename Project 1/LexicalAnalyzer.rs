@@ -174,19 +174,18 @@ fn lexer(filepath: &str) {
         Err(e) => println!("Failed to read file: {}", e),
     }
 }
-
 fn token_type(token: &Token) -> &str {
     match token {
         Token::Integer(_) => "integer",
         Token::Float(_) => "float",
-        Token::Assignment => "assignment",
-        Token::Sum => "sum",
-        Token::Subtract => "subtract",
-        Token::Product => "product",
-        Token::Division => "division",
+        Token::Assignment => "=",
+        Token::Sum => "+",
+        Token::Subtract => "-",
+        Token::Product => "*",
+        Token::Division => "/",
         Token::Variable(_) => "variable",
-        Token::LeftParenthesis => "left parenthesis",
-        Token::RightParenthesis => "right parenthesis",
+        Token::LeftParenthesis => "(",
+        Token::RightParenthesis => ")",
         Token::EOF => "end of file",
     }
 }
