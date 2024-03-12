@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{self, Read};
+use std::io;
 
 #[derive(Debug)]
 enum Token {
@@ -79,17 +79,34 @@ impl LexicalAnalyzer {
         }
     }
 
-    pub fn identifier(&mut self) -> Token {
+    pub fn identifier(&mut self) -> Result<Token, String> {
         let mut id = String::new();
+        let mut valid = true;
+
         while let Some(c) = self.current_char {
-            if c.is_alphabetic() && c.is_lowercase() {
+            if c.is_alphanumeric() || c == '_' {
                 id.push(c);
                 self.advance();
             } else {
                 break;
             }
         }
-        Token::Variable(id)
+
+        // Check if the identifier starts with a letter or underscore
+        if !id.starts_with(char::is_alphabetic) && !id.starts_with('_') {
+            valid = false;
+        }
+
+        // Check if the identifier contains only letters, digits, or underscores
+        if !id.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            valid = false;
+        }
+
+        if valid {
+            Ok(Token::Variable(id))
+        } else {
+            Err(format!("Unknown identifier: {}", id))
+        }
     }
 
     pub fn get_next_token(&mut self) -> Result<Token, String> {
@@ -99,7 +116,7 @@ impl LexicalAnalyzer {
                     self.skip_whitespace();
                     continue;
                 }
-                _ if c.is_alphabetic() => return Ok(self.identifier()),
+                _ if c.is_alphabetic() => return self.identifier(),
                 _ if c.is_numeric() || c == '.' => return Ok(self.number()),
                 '=' => {
                     self.advance();
@@ -141,12 +158,14 @@ fn lexer(filepath: &str) {
         Ok(mut analyzer) => {
             loop {
                 match analyzer.get_next_token() {
-                    Ok(token) => match token {
-                        Token::EOF => break,
-                        _ => println!("{:?}\n{:?}", token, token_type(&token)),
+                    Ok(token) => {
+                        match token {
+                            Token::EOF => break,
+                            _ => println!("Token: {:?} Type: {}", token, token_type(&token)),
+                        }
                     },
                     Err(e) => {
-                        println!("Error: {}", e);
+                        println!("Token: {} Type: unknown", e);
                         break;
                     }
                 }
