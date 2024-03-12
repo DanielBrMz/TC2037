@@ -84,7 +84,7 @@ impl LexicalAnalyzer {
         let mut valid = true;
 
         while let Some(c) = self.current_char {
-            if c.is_alphanumeric() || c == '_' {
+            if c.is_alphabetic() && c.is_lowercase() {
                 id.push(c);
                 self.advance();
             } else {
@@ -92,20 +92,20 @@ impl LexicalAnalyzer {
             }
         }
 
-        // Check if the identifier starts with a letter or underscore
-        if !id.starts_with(char::is_alphabetic) && !id.starts_with('_') {
+        // Check if the identifier starts with a letter
+        if !id.starts_with(char::is_alphabetic) {
             valid = false;
         }
 
-        // Check if the identifier contains only letters, digits, or underscores
-        if !id.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        // Check if the identifier contains only letters
+        if !id.chars().all(char::is_alphabetic) {
             valid = false;
         }
 
         if valid {
             Ok(Token::Variable(id))
         } else {
-            Err(format!("Unknown identifier: {}", id))
+            Err(format!("Invalid identifier: {}", id))
         }
     }
 
@@ -155,24 +155,20 @@ impl LexicalAnalyzer {
 
 fn lexer(filepath: &str) {
     match LexicalAnalyzer::from_file(filepath) {
-        Ok(mut analyzer) => {
-            loop {
-                match analyzer.get_next_token() {
-                    Ok(token) => {
-                        match &token {
-                            Token::EOF => break,
-                            Token::Variable(var) => println!("Token: {} Type: {}", var, token_type(&token)),
-                            Token::Integer(int) => println!("Token: {} Type: {}", int, token_type(&token)),
-                            _ => println!("Type: {} Token: {:?}", token_type(&token), token),
-                        }
-                    },
-                    Err(e) => {
-                        println!("Token: {} Type: unknown", e);
-                        break;
-                    }
+        Ok(mut analyzer) => loop {
+            match analyzer.get_next_token() {
+                Ok(token) => match &token {
+                    Token::EOF => break,
+                    Token::Variable(var) => println!("Token: {} Type: {}", var, token_type(&token)),
+                    Token::Integer(int) => println!("Token: {} Type: {}", int, token_type(&token)),
+                    _ => println!("Type: {} Token: {:?}", token_type(&token), token),
+                },
+                Err(e) => {
+                    println!("Token: {} Type: unknown", e);
+                    break;
                 }
             }
-        }
+        },
         Err(e) => println!("Failed to read file: {}", e),
     }
 }
