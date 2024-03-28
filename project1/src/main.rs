@@ -192,5 +192,6 @@ fn token_type(token: &Token) -> &str {
 fn main() {
     let filepath = "expressions.txt";
     lexer(filepath);
+    println!("Hello, World!");
    
 }
