@@ -193,4 +193,5 @@ fn main() {
     let filepath = "expressions.txt";
     lexer(filepath);
     println!("Hello, World!");
+    println!("Hello, World!");
 }
